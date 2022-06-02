@@ -5,6 +5,7 @@ from aws_cdk import (
     aws_dynamodb as dynamodb,
     aws_lambda as _lambda,
     aws_apigatewayv2 as _apigw,
+    RemovalPolicy,
 )
 from constructs import Construct
 
@@ -34,7 +35,7 @@ class ChatServerStack(Stack):
             ),
             read_capacity=5,
             write_capacity=5,
-            # removal_policy=RemovalPolicy,
+            removal_policy=RemovalPolicy.DESTROY,
         )
 
         connect_func = _lambda.Function(
@@ -67,7 +68,7 @@ class ChatServerStack(Stack):
             "message-lambda",
             runtime=_lambda.Runtime.PYTHON_3_8,
             handler="app.handler",
-            code=_lambda.Code.from_asset("./lambda/ondisconnect"),
+            code=_lambda.Code.from_asset("./lambda/sendmessage"),
             timeout=Duration.seconds(300),
             memory_size=256,
             initial_policy=[
@@ -142,14 +143,14 @@ class ChatServerStack(Stack):
             authorization_type="NONE",
             target=f"integrations/{disconnect_integration.ref}",
         )
-        message_route = _apigw.CfnRoute(
-            self,
-            "message-route",
-            api_id=api.ref,
-            route_key="$sendmessage",
-            authorization_type="NONE",
-            target=f"integrations/{message_integration.ref}",
-        )
+        # message_route = _apigw.CfnRoute(
+        #     self,
+        #     "message-route",
+        #     api_id=api.ref,
+        #     route_key="$sendmessage",
+        #     authorization_type="NONE",
+        #     target=f"integrations/{message_integration.ref}",
+        # )
 
         deployment = _apigw.CfnDeployment(
             self, f"{name}-deployment", api_id=api.ref
@@ -164,5 +165,5 @@ class ChatServerStack(Stack):
         )
         deployment.node.add_dependency(connect_route)
         deployment.node.add_dependency(disconnect_route)
-        deployment.node.add_dependency(message_route)
+        # deployment.node.add_dependency(message_route)
         # The code that defines your stack goes here
